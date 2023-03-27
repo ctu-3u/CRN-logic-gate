@@ -72,7 +72,7 @@ def cal_ness_distribution(mat_k):
     mat_ness = np.matmul(mat_master,mat_null)
     return mat_ness
 
-## compute mutual informatil flows
+## compute mutual information flows
 ##
 
 ############################################ MAIN #########################################################
@@ -82,8 +82,8 @@ m_g = 10 # \gamma
 m_x1 = 1
 m_x2 = 1
 
-for i in range(0,1):
-    for j in range(1,2):
+for i in range(0,8):
+    for j in range(0,31):
         m_h = 1+1.5*i
         m_g = j
         m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
@@ -91,6 +91,7 @@ for i in range(0,1):
         filename = f".\\resu_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
         with open(filename,'w') as f:
             np.savetxt(f,m_ness)
+        # print([i,j]) # just to monitor the process
 
 
 

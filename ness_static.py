@@ -2,12 +2,14 @@ import numpy as np
 import numpy.matlib
 import numpy.linalg
 
+
+#***#
 m_index_start_v = np.array([0,2,5,7,0,1,6,7,4,5,6,3])
 m_index_end_v = np.array([1,3,4,6,2,3,4,5,0,1,2,7])
 m_m_v = np.array([0,1,0,1,0,1,0,1]) # v means "vortex"
 m_a_v = np.array([0,0,1,1,0,0,1,1])
 m_y_v = np.array([0,0,0,0,1,1,1,1])
-
+#***#
 
 # vortex energy level
 def cal_energy_level(h,i):
@@ -50,9 +52,6 @@ def cal_mat_k(x1,x2,g,h):
     for i in range(8):
         for j in range(8):
             mat_k[i,j] = cal_k_ij(i,j,list_energy,mat_driving)
-    # print(mat_k)
-    # print(list_energy)
-    # print(mat_driving)
     return mat_k
 
 # compute probability distribution at NESS
@@ -67,31 +66,65 @@ def cal_ness_distribution(mat_k):
         k_ii = 0
     mat_null = np.matlib.zeros((8,1))
     mat_null[7,0] = 1
-    # print(mat_master)
     mat_master = np.linalg.inv(mat_master)
     mat_ness = np.matmul(mat_master,mat_null)
     return mat_ness
 
-## compute mutual information flows
-##
+# compute mutual information flows
+def cal_idot(mat_dist,mat_k):
+    idot_x = 0 # information flux in x domain
+    idot_y = 0 # information flux in y domain
+    #***#
+    x_cate = np.array([[0,4],[1,5],[2,6],[3,7]]) # categorize states with the same "x1,x2" keys. {(0,0),(1,0),(0,1),(1,1)}
+    y_cate = np.array([[0,1,2,3],[4,5,6,7]]) # categorize states with the same "y" key. {0,1}
+    x_label = np.array([0,1,2,3,0,1,2,3]) # category of "x1,x2" keys for each state
+    y_label = np.array([0,0,0,0,1,1,1,1]) # category of "y" key for each state
+    #***#
+    num_x = x_cate.shape[0] # number of (x1,x2)
+    num_incate_x = x_cate.shape[1] # number of states in any (x1,x2)
+    num_y = y_cate.shape[0] # number of (y)
+    num_incate_y = y_cate.shape[1] # number of states in any (y)
+    prob_x = np.zeros(num_x) # p(x)
+    prob_y = np.zeros(num_y) # p(y)
+    for i in range(num_x): # compute p(x)
+        for j in range(num_incate_x):
+            prob_x[i] = prob_x[i]+mat_dist[x_cate[i][j]]
+    for i in range(num_y): # compute p(y)
+        for j in range(num_incate_y):
+            prob_y[i] = prob_y[i]+mat_dist[y_cate[i][j]]
+    for i in range(num_y): # compute idot_x
+        for j in range(num_incate_y-1):
+            for k in range(j+1,num_incate_y):
+                s_xp = y_cate[i][j]
+                s_x = y_cate[i][k]
+                flux = mat_k[s_xp,s_x]*mat_dist[s_xp]-mat_k[s_x,s_xp]*mat_dist[s_x]
+                stoc_entp = np.log(mat_dist[s_x]*prob_x[x_label[s_xp]]/(mat_dist[s_xp]*prob_x[x_label[s_x]]))
+                idot_x = idot_x + flux*stoc_entp
+    for i in range(num_x): # compute idot_x
+        for j in range(num_incate_x-1):
+            for k in range(j+1,num_incate_x):
+                s_yp = x_cate[i][j]
+                s_y = x_cate[i][k]
+                flux = mat_k[s_yp,s_y]*mat_dist[s_yp]-mat_k[s_y,s_yp]*mat_dist[s_y]
+                stoc_entp = np.log(mat_dist[s_y]*prob_y[y_label[s_yp]]/(mat_dist[s_yp]*prob_y[y_label[s_y]]))
+                idot_y = idot_x + flux*stoc_entp
+    return idot_x,idot_y
 
 ############################################ MAIN #########################################################
 
-m_h = 1 # h_0
-m_g = 10 # \gamma
 m_x1 = 1
 m_x2 = 1
 
+# computing NESS distributions
 for i in range(0,8):
     for j in range(0,31):
-        m_h = 1+1.5*i
-        m_g = j
+        m_h = 1+1.5*i # h_0
+        m_g = j # \gamma
         m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
         m_ness = cal_ness_distribution(m_mat_k)
         filename = f".\\resu_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
         with open(filename,'w') as f:
             np.savetxt(f,m_ness)
-        # print([i,j]) # just to monitor the process
 
 
 

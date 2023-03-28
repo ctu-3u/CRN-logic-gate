@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.matlib
 import numpy.linalg
+import matplotlib.pyplot as plt
 
 
 #***#
@@ -185,11 +186,62 @@ with open(filename_record,'w') as record:
             m_energy = m_h*m_energy_nm
             filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
             with open(filename,'r') as f:
-                m_dist_rd = np.loadtxt(f,delimiter='\n') # distribution readout
-            (delta_effc,omega) = cal_intrin_rt(m_dist_rd,m_mat_k,m_energy)
+                m_rd_dist = np.loadtxt(f,delimiter='\n') # distribution readout
+            (delta_effc,omega) = cal_intrin_rt(m_rd_dist,m_mat_k,m_energy)
             #print("h:{:.1f}\tg:{:2.0f}\tiX:{:}\tiY:{:}\n".format(m_h,m_g,m_idot_x,m_idot_y)) # print to screen
             record_row = np.array([m_h,m_g,delta_effc,omega])
             np.savetxt(record,[record_row],fmt="%.1f\t%d\t%.7e\t%.7e")
             # print(record_row) # print to screen
 
 ## Plot results
+m_list_h = np.arange(8)
+m_list_g = np.arange(31)
+filename_idot = f".\\resl_ness_ana\\idot_flux.dat"
+filename_effc = f".\\resl_ness_ana\\effc_rt.dat"
+with open(filename_idot,'r') as f:
+    m_rd_idot = np.loadtxt(f)
+with open(filename_effc,'r') as f:
+    m_rd_effc = np.loadtxt(f)
+
+m_idot_x = np.reshape(m_rd_idot[:,2],(8,31))
+m_idot_y = np.reshape(m_rd_idot[:,3],(8,31))
+m_effc_d = np.reshape(m_rd_effc[:,2],(8,31))
+m_effc_o = np.reshape(m_rd_effc[:,3],(8,31))
+
+# ploting mutual information in X domain
+plt.figure()
+for i in range(8):
+    plt.plot(m_list_g,m_idot_x[i,:],label='h_0=%.1f'%m_list_h[i])
+    plt.legend()
+plt.xlabel("\u03B3 value")
+plt.ylabel("Mutual information flux in X1X2 domain")
+plt.savefig('.\\resl_ness_ana\\Idot_X.png')
+
+# ploting mutual information in Y domain
+plt.figure()
+for i in range(8):
+    plt.plot(m_list_g,m_idot_y[i,:],label='h_0=%.1f'%m_list_h[i])
+    plt.legend()
+plt.xlabel("\u03B3 value")
+plt.ylabel("Mutual information flux in Y domain")
+plt.savefig('.\\resl_ness_ana\\Idot_Y.png')
+
+# ploting effective driving
+plt.figure()
+for i in range(8):
+    plt.plot(m_list_g,m_effc_d[i,:],label='h_0=%.1f'%m_list_h[i])
+    plt.legend()
+plt.xlabel("\u03B3 value")
+plt.ylabel("Effective \u03B4")
+plt.title(" Effective external driving after coarse graining\n(positive direction y0 to y1) ")
+plt.savefig('.\\resl_ness_ana\\Effc_driving.png')
+
+# ploting effective intrinsic jumping rate
+plt.figure()
+for i in range(8):
+    plt.plot(m_list_g,m_effc_o[i,:],label='h_0=%.1f'%m_list_h[i])
+    plt.legend()
+plt.xlabel("\u03B3 value")
+plt.ylabel("Effective \u03C9")
+plt.title(" Effective intrinsic jumping rate after coarse graining")
+plt.savefig('.\\resl_ness_ana\\Effc_intrin_rate.png')

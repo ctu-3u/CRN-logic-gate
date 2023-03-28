@@ -107,10 +107,38 @@ def cal_idot(mat_dist,mat_k):
                 s_y = x_cate[i][k]
                 flux = mat_k[s_yp,s_y]*mat_dist[s_yp]-mat_k[s_y,s_yp]*mat_dist[s_y]
                 stoc_entp = np.log(mat_dist[s_y]*prob_y[y_label[s_yp]]/(mat_dist[s_yp]*prob_y[y_label[s_y]]))
-                idot_y = idot_x + flux*stoc_entp
+                idot_y = idot_y + flux*stoc_entp
     return idot_x,idot_y
 
+# compute effective intrinsic jumping rate \omega
+def cal_intrin_rt(mat_dist,mat_k,mat_ene): # need to know distribution, "real" jumping rates and states' energy before coarse graining
+    p_y0 = 0
+    p_y1 = 0
+    Eave_y0 = 0
+    Eave_y1 = 0
+    for i in range(4):
+        p_y0 = p_y0+mat_dist[i]
+        p_y1 = p_y1+mat_dist[i+4]
+        Eave_y0 = Eave_y0+mat_dist[i]*mat_ene[i]
+        Eave_y1 = Eave_y1+mat_dist[i+4]*mat_ene[i+4]
+    Eave_y0 = Eave_y0/p_y0
+    Eave_y1 = Eave_y1/p_y1
+    Ebar_y0 = p_y1*Eave_y1+p_y0*Eave_y0-p_y1*np.log(p_y0/p_y1)
+    Ebar_y1 = Ebar_y0+np.log(p_y0/p_y1)
+    delta_effc = (Eave_y1-Eave_y0)-(Ebar_y1-Ebar_y0) # effective driving after coarse graining
+    # compute \omega via "0 to 1" and "1 to 0" jummping respectively
+    block_down = 0
+    block_up = 0
+    for i in range(4):
+        block_down = block_down+mat_k[i,i+4]*mat_dist[i]
+        block_up = block_up+mat_k[i+4,i]*mat_dist[i+4]
+    omega_down = block_down/(p_y0*np.exp(-Ebar_y1))
+    omega_up = block_up/(p_y1*np.exp(-Ebar_y0)) # theoretically up and down \omega should be equal. they actually are
+    return delta_effc,(omega_down+omega_up)/2
+
 ############################################ MAIN #########################################################
+
+## Analysis
 
 m_x1 = 1
 m_x2 = 1
@@ -122,11 +150,46 @@ for i in range(0,8):
         m_g = j # \gamma
         m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
         m_ness = cal_ness_distribution(m_mat_k)
-        filename = f".\\resu_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
+        filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
         with open(filename,'w') as f:
             np.savetxt(f,m_ness)
 
+# computing effective intrinsic jumping rate
+filename_record = f".\\resl_ness_ana\\idot_flux.dat"
+with open(filename_record,'w') as record:
+    np.savetxt(record,[],header='h_0\tg\tiX\tiY\t')
+    for i in range(0,8):
+        for j in range(0,31):
+            m_h = 1+1.5*i
+            m_g = j
+            m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
+            filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
+            with open(filename,'r') as f:
+                m_dist_rd = np.loadtxt(f,delimiter='\n') # distribution readout
+            (m_idot_x,m_idot_y) = cal_idot(m_dist_rd,m_mat_k)
+            #print("h:{:.1f}\tg:{:2.0f}\tiX:{:}\tiY:{:}\n".format(m_h,m_g,m_idot_x,m_idot_y)) # print to screen
+            record_row = np.array([m_h,m_g,m_idot_x,m_idot_y])
+            np.savetxt(record,[record_row],fmt="%.1f\t%d\t%.18e\t%.18e")
 
+# computing mutual information flow
+m_energy_nm = np.array([0,0,0,1,1,1,1,0])  # normailized state energies
 
+filename_record = f".\\resl_ness_ana\\effc_rt.dat"
+with open(filename_record,'w') as record:
+    np.savetxt(record,[],header='h_0\tg\tdelta_effc\t omega')
+    for i in range(0,8):
+        for j in range(0,31):
+            m_h = 1+1.5*i
+            m_g = j
+            m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
+            m_energy = m_h*m_energy_nm
+            filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
+            with open(filename,'r') as f:
+                m_dist_rd = np.loadtxt(f,delimiter='\n') # distribution readout
+            (delta_effc,omega) = cal_intrin_rt(m_dist_rd,m_mat_k,m_energy)
+            #print("h:{:.1f}\tg:{:2.0f}\tiX:{:}\tiY:{:}\n".format(m_h,m_g,m_idot_x,m_idot_y)) # print to screen
+            record_row = np.array([m_h,m_g,delta_effc,omega])
+            np.savetxt(record,[record_row],fmt="%.1f\t%d\t%.7e\t%.7e")
+            # print(record_row) # print to screen
 
-
+## Plot results

@@ -71,6 +71,45 @@ def cal_ness_distribution(mat_k):
     mat_ness = np.matmul(mat_master,mat_null)
     return mat_ness
 
+# compute (decomposed) flux
+def cal_J_flux(mat_dist,mat_k):
+    mat_J = np.matlib.zeros((8,8))
+    J_x = 0
+    J_y = 0
+    for j in range(7):
+        for i in range(j+1,8): # only calculate jumping x > x'
+            mat_J[i,j] = mat_k[i,j]*mat_dist[i]-mat_k[j,i]*mat_dist[j]
+            if (i-j)>=4:
+                J_y = J_y+mat_J[i,j]
+            if (i-j)<4:
+                J_x = J_x+mat_J[i,j]
+    return mat_J,J_x,J_y
+
+# compute mutual information
+def cal_I_mutlinfo(mat_dist):
+    i_mi = 0
+    #***#
+    x_cate = np.array([[0,4],[1,5],[2,6],[3,7]]) # categorize states with the same "x1,x2" keys. {(0,0),(1,0),(0,1),(1,1)}
+    y_cate = np.array([[0,1,2,3],[4,5,6,7]]) # categorize states with the same "y" key. {0,1}
+    x_label = np.array([0,1,2,3,0,1,2,3]) # category of "x1,x2" keys for each state
+    y_label = np.array([0,0,0,0,1,1,1,1]) # category of "y" key for each state
+    #***#
+    num_x = x_cate.shape[0] # number of (x1,x2)
+    num_incate_x = x_cate.shape[1] # number of states in any (x1,x2)
+    num_y = y_cate.shape[0] # number of (y)
+    num_incate_y = y_cate.shape[1] # number of states in any (y)
+    prob_x = np.zeros(num_x) # p(x)
+    prob_y = np.zeros(num_y) # p(y)
+    for i in range(num_x): # compute p(x)
+        for j in range(num_incate_x):
+            prob_x[i] = prob_x[i]+mat_dist[x_cate[i][j]]
+    for i in range(num_y): # compute p(y)
+        for j in range(num_incate_y):
+            prob_y[i] = prob_y[i]+mat_dist[y_cate[i][j]]
+    for i in range(8):
+        i_mi = i_mi+mat_dist[i]*np.log(mat_dist[i]/(prob_x[x_label[i]]*prob_y[y_label[i]]))
+    return i_mi
+
 # compute mutual information flows
 def cal_idot(mat_dist,mat_k):
     idot_x = 0 # information flux in x domain
@@ -142,7 +181,7 @@ def cal_intrin_rt(mat_dist,mat_k,mat_ene): # need to know distribution, "real" j
 ## Analysis
 
 m_x1 = 1
-m_x2 = 1
+m_x2 = 0
 
 # computing NESS distributions
 for i in range(0,8):
@@ -151,11 +190,12 @@ for i in range(0,8):
         m_g = j # \gamma
         m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
         m_ness = cal_ness_distribution(m_mat_k)
+        # (m_mat_J,m_Jx,m_Jy) = cal_J_flux(m_ness,m_mat_k)
         filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
         with open(filename,'w') as f:
             np.savetxt(f,m_ness)
 
-# computing effective intrinsic jumping rate
+# computing mutual information flow
 filename_record = f".\\resl_ness_ana\\idot_flux.dat"
 with open(filename_record,'w') as record:
     np.savetxt(record,[],header='h_0\tg\tiX\tiY\t')
@@ -172,7 +212,23 @@ with open(filename_record,'w') as record:
             record_row = np.array([m_h,m_g,m_idot_x,m_idot_y])
             np.savetxt(record,[record_row],fmt="%.1f\t%d\t%.18e\t%.18e")
 
-# computing mutual information flow
+# computing mutual information at stationary states
+filename_record = f".\\resl_ness_ana\\mutual_information.dat"
+with open(filename_record,'w') as record:
+    np.savetxt(record,[],header='h_0\tg\tI')
+    for i in range(0,8):
+        for j in range(0,31):
+            m_h = 1+1.5*i
+            m_g = j
+            m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
+            filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
+            with open(filename,'r') as f:
+                m_dist_rd = np.loadtxt(f,delimiter='\n') # distribution readout
+            m_I_mi = cal_I_mutlinfo(m_dist_rd)
+            record_row = np.array([m_h,m_g,m_I_mi])
+            np.savetxt(record,[record_row],fmt="%.1f\t%d\t%.18e")
+
+# computing effective intrinsic jumping rate
 m_energy_nm = np.array([0,0,0,1,1,1,1,0])  # normailized state energies
 
 filename_record = f".\\resl_ness_ana\\effc_rt.dat"
@@ -194,19 +250,34 @@ with open(filename_record,'w') as record:
             # print(record_row) # print to screen
 
 ## Plot results
+
 m_list_h = np.arange(8)
 m_list_g = np.arange(31)
+
 filename_idot = f".\\resl_ness_ana\\idot_flux.dat"
-filename_effc = f".\\resl_ness_ana\\effc_rt.dat"
 with open(filename_idot,'r') as f:
     m_rd_idot = np.loadtxt(f)
+filename_effc = f".\\resl_ness_ana\\effc_rt.dat"
 with open(filename_effc,'r') as f:
     m_rd_effc = np.loadtxt(f)
+filename_mtif = f".\\resl_ness_ana\\mutual_information.dat"
+with open(filename_mtif) as f:
+    m_rd_mi = np.loadtxt(f)
 
 m_idot_x = np.reshape(m_rd_idot[:,2],(8,31))
 m_idot_y = np.reshape(m_rd_idot[:,3],(8,31))
 m_effc_d = np.reshape(m_rd_effc[:,2],(8,31))
 m_effc_o = np.reshape(m_rd_effc[:,3],(8,31))
+m_I_mi = np.reshape(m_rd_mi[:,2],(8,31))
+
+# ploting mutual information
+plt.figure()
+for i in range(8):
+    plt.plot(m_list_g,m_I_mi[i,:],label='h_0=%.1f'%m_list_h[i])
+    plt.legend()
+plt.xlabel("\u03B3 value")
+plt.ylabel("Mutual information")
+plt.savefig('.\\resl_ness_ana\\I_mutl_info.png')
 
 # ploting mutual information in X domain
 plt.figure()

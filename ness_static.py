@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.matlib
 import numpy.linalg
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
@@ -12,16 +13,30 @@ m_a_v = np.array([0,0,1,1,0,0,1,1])
 m_y_v = np.array([0,0,0,0,1,1,1,1])
 #***#
 
-# vortex energy level
-def cal_energy_level(h,i):
+# vortex energy level, equilibrium model 1
+def cal_energy_level_mdl1(x1,x2,h,i):
     # i is the index of vortex
     energy = h*np.square(m_y_v[i]-m_m_v[i]*m_a_v[i])
     return energy
 
-# non-equilibrium driving force, positive direction
+# added external field, equilibrium model 1
+# i is the start vortex index, j is the end vortex index
+def cal_driving_mdl1(x1,x2,g,i,j):
+    driving = -g/2*((x1-0.5)*(m_m_v[i]-0.5)+(x2-0.5)*(m_a_v[i]-0.5))
+    return driving
+
+# vortex energy level, non-equilibrium model 2
+def cal_energy_level(x1,x2,h,i):
+    # i is the index of vortex
+    energy = -h*((x1-0.5)*(m_m_v[i]-0.5)+(x2-0.5)*(m_a_v[i]-0.5))
+    return energy
+
+# external driving, non-equilibrium model 2
 # i is the start vortex index, j is the end vortex index
 def cal_driving(x1,x2,g,i,j):
-    driving = -g/2*((x1-0.5)*(m_m_v[i]-0.5)+(x2-0.5)*(m_a_v[i]-0.5))
+    driving = 0
+    if i-j==4 or j-i==4:
+        driving = g*(np.square(m_y_v[i]-m_m_v[i]*m_a_v[i])-0.5)
     return driving
 
 # jumping rate
@@ -35,9 +50,9 @@ def cal_k_ij(i,j,list_energy,mat_driving):
         elif m_index_start_v[index] == j and m_index_end_v[index] == i:
             connect = 1
     if connect == 1:
-        H_v = list_energy[j]
+        H_v = list_energy[i]
         d_e = mat_driving[i,j] # e means "edge"
-        jumping_rate = np.exp(-H_v+d_e)
+        jumping_rate = np.exp(H_v+d_e)
     return jumping_rate
 
 # compute jumping rates' matrix
@@ -46,13 +61,14 @@ def cal_mat_k(x1,x2,g,h):
     list_energy = np.zeros(8)
     mat_driving = np.matlib.zeros((8,8))
     for i in range(8):
-        list_energy[i] = cal_energy_level(h,i)
+        list_energy[i] = cal_energy_level(x1,x2,h,i)
     for i in range(8):
         for j in range(8):
             mat_driving[i,j] = cal_driving(x1,x2,g,i,j)
     for i in range(8):
         for j in range(8):
             mat_k[i,j] = cal_k_ij(i,j,list_energy,mat_driving)
+    print(mat_k)
     return mat_k
 
 # compute probability distribution at NESS
@@ -181,13 +197,16 @@ def cal_intrin_rt(mat_dist,mat_k,mat_ene): # need to know distribution, "real" j
 ## Analysis
 
 m_x1 = 1
-m_x2 = 0
+m_x2 = 1
+
+m_num_g = 6
+m_num_h = 16
 
 # computing NESS distributions
-for i in range(0,8):
-    for j in range(0,31):
-        m_h = 1+1.5*i # h_0
-        m_g = j # \gamma
+for i in range(0,m_num_g):
+    for j in range(0,m_num_h):
+        m_g = 2*i # \gamme
+        m_h = j # \h_0
         m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
         m_ness = cal_ness_distribution(m_mat_k)
         # (m_mat_J,m_Jx,m_Jy) = cal_J_flux(m_ness,m_mat_k)
@@ -195,65 +214,53 @@ for i in range(0,8):
         with open(filename,'w') as f:
             np.savetxt(f,m_ness)
 
-# computing mutual information flow
-filename_record = f".\\resl_ness_ana\\idot_flux.dat"
-with open(filename_record,'w') as record:
-    np.savetxt(record,[],header='h_0\tg\tiX\tiY\t')
-    for i in range(0,8):
-        for j in range(0,31):
-            m_h = 1+1.5*i
-            m_g = j
-            m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
-            filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
-            with open(filename,'r') as f:
-                m_dist_rd = np.loadtxt(f,delimiter='\n') # distribution readout
-            (m_idot_x,m_idot_y) = cal_idot(m_dist_rd,m_mat_k)
-            #print("h:{:.1f}\tg:{:2.0f}\tiX:{:}\tiY:{:}\n".format(m_h,m_g,m_idot_x,m_idot_y)) # print to screen
-            record_row = np.array([m_h,m_g,m_idot_x,m_idot_y])
-            np.savetxt(record,[record_row],fmt="%.1f\t%d\t%.18e\t%.18e")
+# computing properties
+m_energy_nm = np.array([1,0,0,-1,1,0,0,-1])  # normailized state energies
 
-# computing mutual information at stationary states
-filename_record = f".\\resl_ness_ana\\mutual_information.dat"
-with open(filename_record,'w') as record:
-    np.savetxt(record,[],header='h_0\tg\tI')
-    for i in range(0,8):
-        for j in range(0,31):
-            m_h = 1+1.5*i
-            m_g = j
-            m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
-            filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
-            with open(filename,'r') as f:
-                m_dist_rd = np.loadtxt(f,delimiter='\n') # distribution readout
-            m_I_mi = cal_I_mutlinfo(m_dist_rd)
-            record_row = np.array([m_h,m_g,m_I_mi])
-            np.savetxt(record,[record_row],fmt="%.1f\t%d\t%.18e")
-
-# computing effective intrinsic jumping rate
-m_energy_nm = np.array([0,0,0,1,1,1,1,0])  # normailized state energies
-
-filename_record = f".\\resl_ness_ana\\effc_rt.dat"
-with open(filename_record,'w') as record:
-    np.savetxt(record,[],header='h_0\tg\tdelta_effc\t omega')
-    for i in range(0,8):
-        for j in range(0,31):
-            m_h = 1+1.5*i
-            m_g = j
-            m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
-            m_energy = m_h*m_energy_nm
-            filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
-            with open(filename,'r') as f:
-                m_rd_dist = np.loadtxt(f,delimiter='\n') # distribution readout
-            (delta_effc,omega) = cal_intrin_rt(m_rd_dist,m_mat_k,m_energy)
-            #print("h:{:.1f}\tg:{:2.0f}\tiX:{:}\tiY:{:}\n".format(m_h,m_g,m_idot_x,m_idot_y)) # print to screen
-            record_row = np.array([m_h,m_g,delta_effc,omega])
-            np.savetxt(record,[record_row],fmt="%.1f\t%d\t%.7e\t%.7e")
-            # print(record_row) # print to screen
+for i in range(0,m_num_g):
+    for j in range(0,m_num_h):
+        m_g = i*2
+        m_h = j
+        m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
+        filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
+        with open(filename,'r') as f:
+            m_dist_rd = np.loadtxt(f,delimiter='\n') # distribution readout
+        # correctness
+        crrct_exct = m_dist_rd[7]
+        crrct_gnrl = np.sum(m_dist_rd[4:8])
+        record_row = np.array([m_g,m_h,crrct_exct,crrct_gnrl])
+        f_record = f".\\resl_ness_ana\\correctness.dat"
+        with open(f_record,'ab') as f:
+            np.savetxt(f,[record_row],fmt="%d\t%d\t%.9e\t%.9e")
+        # mutual information flow
+        (m_idot_x,m_idot_y) = cal_idot(m_dist_rd,m_mat_k)
+        record_row = np.array([m_g,m_h,m_idot_x,m_idot_y])
+        f_record = f".\\resl_ness_ana\\idot_flux.dat"
+        with open(f_record,'ab') as f:
+            np.savetxt(f,[record_row],fmt="%d\t%d\t%.18e\t%.18e")
+        # mutual information
+        m_I_mi = cal_I_mutlinfo(m_dist_rd)
+        record_row = np.array([m_g,m_h,m_I_mi])
+        f_record = f".\\resl_ness_ana\\mutual_information.dat"
+        with open(f_record,'ab') as f:
+            np.savetxt(f,[record_row],fmt="%d\t%d\t%.18e")
+        # effective dynamics
+        m_energy = m_h*m_energy_nm/2
+        (delta_effc,omega) = cal_intrin_rt(m_dist_rd,m_mat_k,m_energy)
+        record_row = np.array([m_g,m_h,delta_effc,omega])
+        f_record = f".\\resl_ness_ana\\effc_rt.dat"
+        with open(f_record,'ab') as f:
+            np.savetxt(f,[record_row],fmt="%d\t%d\t%.7e\t%.7e")
+        #
 
 ## Plot results
 
-m_list_h = np.arange(8)
-m_list_g = np.arange(31)
+m_list_g = np.arange(m_num_g)*2
+m_list_h = np.arange(m_num_h)
 
+filename_crrct = f".\\resl_ness_ana\\correctness.dat"
+with open(filename_crrct,'r') as f:
+    m_rd_crrct = np.loadtxt(f)
 filename_idot = f".\\resl_ness_ana\\idot_flux.dat"
 with open(filename_idot,'r') as f:
     m_rd_idot = np.loadtxt(f)
@@ -264,55 +271,70 @@ filename_mtif = f".\\resl_ness_ana\\mutual_information.dat"
 with open(filename_mtif) as f:
     m_rd_mi = np.loadtxt(f)
 
-m_idot_x = np.reshape(m_rd_idot[:,2],(8,31))
-m_idot_y = np.reshape(m_rd_idot[:,3],(8,31))
-m_effc_d = np.reshape(m_rd_effc[:,2],(8,31))
-m_effc_o = np.reshape(m_rd_effc[:,3],(8,31))
-m_I_mi = np.reshape(m_rd_mi[:,2],(8,31))
+m_crrct_exct = np.reshape(m_rd_crrct[:,2],(m_num_g,m_num_h))
+m_crrct_gnrl = np.reshape(m_rd_crrct[:,3],(m_num_g,m_num_h))
+m_idot_x = np.reshape(m_rd_idot[:,2],(m_num_g,m_num_h))
+m_idot_y = np.reshape(m_rd_idot[:,3],(m_num_g,m_num_h))
+m_effc_d = np.reshape(m_rd_effc[:,2],(m_num_g,m_num_h))
+m_effc_o = np.reshape(m_rd_effc[:,3],(m_num_g,m_num_h))
+m_I_mi = np.reshape(m_rd_mi[:,2],(m_num_g,m_num_h))
+
+# ploting correctness probability
+colorbar = ['k','b','c','g','y','r','m','violet']
+plt.figure()
+for i in range(m_num_g):
+    plt.plot(m_list_h,m_crrct_exct[i,:],label='\u03B3=%.1f'%m_list_g[i],color=colorbar[i])
+    plt.legend()
+for i in range(m_num_g):
+    plt.plot(m_list_h,m_crrct_gnrl[i,:],'--',color=colorbar[i])
+plt.xlabel("h_0 value")
+plt.ylabel("correctness probability")
+plt.savefig('.\\resl_ness_ana\\correctness.png')
 
 # ploting mutual information
 plt.figure()
-for i in range(8):
-    plt.plot(m_list_g,m_I_mi[i,:],label='h_0=%.1f'%m_list_h[i])
+for i in range(m_num_g):
+    plt.plot(m_list_h,m_I_mi[i,:],label='\u03B3=%.1f'%m_list_g[i],color=colorbar[i])
     plt.legend()
-plt.xlabel("\u03B3 value")
+# plt.xlabel("\u03B3 value")
+plt.xlabel("h_0 value")
 plt.ylabel("Mutual information")
 plt.savefig('.\\resl_ness_ana\\I_mutl_info.png')
 
 # ploting mutual information in X domain
 plt.figure()
-for i in range(8):
-    plt.plot(m_list_g,m_idot_x[i,:],label='h_0=%.1f'%m_list_h[i])
+for i in range(m_num_g):
+    plt.plot(m_list_h,m_idot_x[i,:],label='\u03B3=%.1f'%m_list_g[i],color=colorbar[i])
     plt.legend()
-plt.xlabel("\u03B3 value")
+plt.xlabel("h_0 value")
 plt.ylabel("Mutual information flux in X1X2 domain")
 plt.savefig('.\\resl_ness_ana\\Idot_X.png')
 
 # ploting mutual information in Y domain
 plt.figure()
-for i in range(8):
-    plt.plot(m_list_g,m_idot_y[i,:],label='h_0=%.1f'%m_list_h[i])
+for i in range(m_num_g):
+    plt.plot(m_list_h,m_idot_y[i,:],label='\u03B3=%.1f'%m_list_g[i],color=colorbar[i])
     plt.legend()
-plt.xlabel("\u03B3 value")
+plt.xlabel("h_0 value")
 plt.ylabel("Mutual information flux in Y domain")
 plt.savefig('.\\resl_ness_ana\\Idot_Y.png')
 
 # ploting effective driving
 plt.figure()
-for i in range(8):
-    plt.plot(m_list_g,m_effc_d[i,:],label='h_0=%.1f'%m_list_h[i])
+for i in range(m_num_g):
+    plt.plot(m_list_h,m_effc_d[i,:],label='\u03B3=%.1f'%m_list_g[i],color=colorbar[i])
     plt.legend()
-plt.xlabel("\u03B3 value")
+plt.xlabel("h_0 value")
 plt.ylabel("Effective \u03B4")
 plt.title(" Effective external driving after coarse graining\n(positive direction y0 to y1) ")
 plt.savefig('.\\resl_ness_ana\\Effc_driving.png')
 
 # ploting effective intrinsic jumping rate
 plt.figure()
-for i in range(8):
-    plt.plot(m_list_g,m_effc_o[i,:],label='h_0=%.1f'%m_list_h[i])
+for i in range(m_num_g):
+    plt.plot(m_list_h,m_effc_o[i,:],label='\u03B3=%.1f'%m_list_g[i],color=colorbar[i])
     plt.legend()
-plt.xlabel("\u03B3 value")
+plt.xlabel("h_0 value")
 plt.ylabel("Effective \u03C9")
 plt.title(" Effective intrinsic jumping rate after coarse graining")
 plt.savefig('.\\resl_ness_ana\\Effc_intrin_rate.png')

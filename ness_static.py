@@ -68,7 +68,6 @@ def cal_mat_k(x1,x2,g,h):
     for i in range(8):
         for j in range(8):
             mat_k[i,j] = cal_k_ij(i,j,list_energy,mat_driving)
-    print(mat_k)
     return mat_k
 
 # compute probability distribution at NESS
@@ -199,14 +198,16 @@ def cal_intrin_rt(mat_dist,mat_k,mat_ene): # need to know distribution, "real" j
 m_x1 = 1
 m_x2 = 1
 
-m_num_g = 6
+m_num_g = 8
 m_num_h = 16
+m_d_g = 1
+m_inc_h = 8
 
 # computing NESS distributions
 for i in range(0,m_num_g):
     for j in range(0,m_num_h):
-        m_g = 2*i # \gamme
-        m_h = j # \h_0
+        m_g = i*m_d_g # \gamme
+        m_h = j+m_inc_h # \h_0
         m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
         m_ness = cal_ness_distribution(m_mat_k)
         # (m_mat_J,m_Jx,m_Jy) = cal_J_flux(m_ness,m_mat_k)
@@ -219,8 +220,8 @@ m_energy_nm = np.array([1,0,0,-1,1,0,0,-1])  # normailized state energies
 
 for i in range(0,m_num_g):
     for j in range(0,m_num_h):
-        m_g = i*2
-        m_h = j
+        m_g = i*m_d_g
+        m_h = j+m_inc_h
         m_mat_k = cal_mat_k(m_x1,m_x2,m_g,m_h)
         filename = f".\\resl_nessdist\\xo_{m_x1}xt_{m_x2}h_{m_h}g_{m_g}.dat"
         with open(filename,'r') as f:
@@ -255,8 +256,8 @@ for i in range(0,m_num_g):
 
 ## Plot results
 
-m_list_g = np.arange(m_num_g)*2
-m_list_h = np.arange(m_num_h)
+m_list_g = np.arange(m_num_g)*m_d_g
+m_list_h = np.arange(m_num_h)+m_inc_h
 
 filename_crrct = f".\\resl_ness_ana\\correctness.dat"
 with open(filename_crrct,'r') as f:

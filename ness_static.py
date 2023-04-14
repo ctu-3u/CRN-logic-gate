@@ -5,12 +5,19 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
-#***#
+#***# configure network structure
 m_index_start_v = np.array([0,2,5,7,0,1,6,7,4,5,6,3])
 m_index_end_v = np.array([1,3,4,6,2,3,4,5,0,1,2,7])
 m_m_v = np.array([0,1,0,1,0,1,0,1]) # v means "vortex"
 m_a_v = np.array([0,0,1,1,0,0,1,1])
 m_y_v = np.array([0,0,0,0,1,1,1,1])
+m_x_cate = np.array([[0,4],[1,5],[2,6],[3,7]]) # categorize states with the same "x1,x2" keys. {(0,0),(1,0),(0,1),(1,1)}
+m_y_cate = np.array([[0,1,2,3],[4,5,6,7]]) # categorize states with the same "y" key. {0,1}
+m_x_label = np.array([0,1,2,3,0,1,2,3]) # category of "x1,x2" keys for each state
+m_y_label = np.array([0,0,0,0,1,1,1,1]) # category of "y" key for each state
+m_kB = 1 # Boltzmann constant
+m_T = 1 # temperature
+m_beta = 1/(m_kB*m_T)
 #***#
 
 # vortex energy level, equilibrium model 1
@@ -56,7 +63,7 @@ def cal_k_ij(i,j,list_energy,mat_driving):
     if connect == 1:
         H_v = list_energy[i]
         d_e = mat_driving[i,j] # e means "edge"
-        jumping_rate = np.exp(H_v+d_e)
+        jumping_rate = np.exp(m_beta*(H_v+d_e))
     return jumping_rate
 
 # compute jumping rates' matrix
@@ -107,65 +114,53 @@ def cal_J_flux(mat_dist,mat_k):
 # compute mutual information
 def cal_I_mutlinfo(mat_dist):
     i_mi = 0
-    #***#
-    x_cate = np.array([[0,4],[1,5],[2,6],[3,7]]) # categorize states with the same "x1,x2" keys. {(0,0),(1,0),(0,1),(1,1)}
-    y_cate = np.array([[0,1,2,3],[4,5,6,7]]) # categorize states with the same "y" key. {0,1}
-    x_label = np.array([0,1,2,3,0,1,2,3]) # category of "x1,x2" keys for each state
-    y_label = np.array([0,0,0,0,1,1,1,1]) # category of "y" key for each state
-    #***#
-    num_x = x_cate.shape[0] # number of (x1,x2)
-    num_incate_x = x_cate.shape[1] # number of states in any (x1,x2)
-    num_y = y_cate.shape[0] # number of (y)
-    num_incate_y = y_cate.shape[1] # number of states in any (y)
+    num_x = m_x_cate.shape[0] # number of (x1,x2)
+    num_incate_x = m_x_cate.shape[1] # number of states in any (x1,x2)
+    num_y = m_y_cate.shape[0] # number of (y)
+    num_incate_y = m_y_cate.shape[1] # number of states in any (y)
     prob_x = np.zeros(num_x) # p(x)
     prob_y = np.zeros(num_y) # p(y)
     for i in range(num_x): # compute p(x)
         for j in range(num_incate_x):
-            prob_x[i] = prob_x[i]+mat_dist[x_cate[i][j]]
+            prob_x[i] = prob_x[i]+mat_dist[m_x_cate[i][j]]
     for i in range(num_y): # compute p(y)
         for j in range(num_incate_y):
-            prob_y[i] = prob_y[i]+mat_dist[y_cate[i][j]]
+            prob_y[i] = prob_y[i]+mat_dist[m_y_cate[i][j]]
     for i in range(8):
-        i_mi = i_mi+mat_dist[i]*np.log(mat_dist[i]/(prob_x[x_label[i]]*prob_y[y_label[i]]))
+        i_mi = i_mi+mat_dist[i]*np.log(mat_dist[i]/(prob_x[m_x_label[i]]*prob_y[m_y_label[i]]))
     return i_mi
 
 # compute mutual information flows
 def cal_idot(mat_dist,mat_k):
     idot_x = 0 # information flux in x domain
     idot_y = 0 # information flux in y domain
-    #***#
-    x_cate = np.array([[0,4],[1,5],[2,6],[3,7]]) # categorize states with the same "x1,x2" keys. {(0,0),(1,0),(0,1),(1,1)}
-    y_cate = np.array([[0,1,2,3],[4,5,6,7]]) # categorize states with the same "y" key. {0,1}
-    x_label = np.array([0,1,2,3,0,1,2,3]) # category of "x1,x2" keys for each state
-    y_label = np.array([0,0,0,0,1,1,1,1]) # category of "y" key for each state
-    #***#
-    num_x = x_cate.shape[0] # number of (x1,x2)
-    num_incate_x = x_cate.shape[1] # number of states in any (x1,x2)
-    num_y = y_cate.shape[0] # number of (y)
-    num_incate_y = y_cate.shape[1] # number of states in any (y)
+    num_x = m_x_cate.shape[0] # number of (x1,x2)
+    num_incate_x = m_x_cate.shape[1] # number of states in any (x1,x2)
+    num_y = m_y_cate.shape[0] # number of (y)
+    num_incate_y = m_y_cate.shape[1] # number of states in any (y)
     prob_x = np.zeros(num_x) # p(x)
     prob_y = np.zeros(num_y) # p(y)
     for i in range(num_x): # compute p(x)
         for j in range(num_incate_x):
-            prob_x[i] = prob_x[i]+mat_dist[x_cate[i][j]]
+            prob_x[i] = prob_x[i]+mat_dist[m_x_cate[i][j]]
     for i in range(num_y): # compute p(y)
         for j in range(num_incate_y):
-            prob_y[i] = prob_y[i]+mat_dist[y_cate[i][j]]
+            prob_y[i] = prob_y[i]+mat_dist[m_y_cate[i][j]]
     for i in range(num_y): # compute idot_x
         for j in range(num_incate_y-1):
             for k in range(j+1,num_incate_y):
-                s_xp = y_cate[i][j]
-                s_x = y_cate[i][k]
+                s_xp = m_y_cate[i][j]
+                s_x = m_y_cate[i][k]
                 flux = mat_k[s_xp,s_x]*mat_dist[s_xp]-mat_k[s_x,s_xp]*mat_dist[s_x]
-                stoc_entp = np.log(mat_dist[s_x]*prob_x[x_label[s_xp]]/(mat_dist[s_xp]*prob_x[x_label[s_x]]))
+                stoc_entp = np.log(mat_dist[s_x]*prob_x[m_x_label[s_xp]]/(mat_dist[s_xp]*prob_x[m_x_label[s_x]]))
                 idot_x = idot_x + flux*stoc_entp
     for i in range(num_x): # compute idot_x
         for j in range(num_incate_x-1):
             for k in range(j+1,num_incate_x):
-                s_yp = x_cate[i][j]
-                s_y = x_cate[i][k]
+                s_yp = m_x_cate[i][j]
+                s_y = m_x_cate[i][k]
                 flux = mat_k[s_yp,s_y]*mat_dist[s_yp]-mat_k[s_y,s_yp]*mat_dist[s_y]
-                stoc_entp = np.log(mat_dist[s_y]*prob_y[y_label[s_yp]]/(mat_dist[s_yp]*prob_y[y_label[s_y]]))
+                stoc_entp = np.log(mat_dist[s_y]*prob_y[m_y_label[s_yp]]/(mat_dist[s_yp]*prob_y[m_y_label[s_y]]))
                 idot_y = idot_y + flux*stoc_entp
     return idot_x,idot_y
 
@@ -182,8 +177,8 @@ def cal_intrin_rt(mat_dist,mat_k,mat_ene): # need to know distribution, "real" j
         Eave_y1 = Eave_y1+mat_dist[i+4]*mat_ene[i+4]
     Eave_y0 = Eave_y0/p_y0
     Eave_y1 = Eave_y1/p_y1
-    Ebar_y0 = p_y1*Eave_y1+p_y0*Eave_y0-p_y1*np.log(p_y0/p_y1)
-    Ebar_y1 = Ebar_y0+np.log(p_y0/p_y1)
+    Ebar_y0 = p_y1*Eave_y1+p_y0*Eave_y0-p_y1*np.log(p_y0/p_y1)/m_beta
+    Ebar_y1 = Ebar_y0+np.log(p_y0/p_y1)/m_beta
     delta_effc = (Eave_y1-Eave_y0)-(Ebar_y1-Ebar_y0) # effective driving after coarse graining
     # compute \omega via "0 to 1" and "1 to 0" jummping respectively
     block_down = 0
@@ -191,9 +186,22 @@ def cal_intrin_rt(mat_dist,mat_k,mat_ene): # need to know distribution, "real" j
     for i in range(4):
         block_down = block_down+mat_k[i,i+4]*mat_dist[i]
         block_up = block_up+mat_k[i+4,i]*mat_dist[i+4]
-    omega_down = block_down/(p_y0*np.exp(-Ebar_y1))
-    omega_up = block_up/(p_y1*np.exp(-Ebar_y0)) # theoretically up and down \omega should be equal. they actually are
+    omega_down = block_down/(p_y0*np.exp(-Ebar_y1*m_beta))
+    omega_up = block_up/(p_y1*np.exp(-Ebar_y0*m_beta)) # theoretically up and down \omega should be equal. they actually are
     return delta_effc,(omega_down+omega_up)/2
+
+# compute total entropy production
+def cal_entropy_prod_total(mat_dist,mat_k):
+    (mat_J,J_x,J_y) = cal_J_flux(mat_dist,mat_k)
+    heat_dssp = 0
+    entp_mic_prod = 0
+    for i in range(8):
+        for j in range (8):
+            if mat_k[i,j]==0 or mat_k[j,i]==0: # not calculate non-connective edges
+                continue
+            heat_dssp = heat_dssp+m_kB*mat_J[i,j]*np.log(mat_k[i,j]/mat_k[j,i])/2
+            entp_mic_prod = entp_mic_prod+m_kB*mat_J[i,j]*np.log(mat_dist[i]/mat_dist[j])/2
+    return heat_dssp,entp_mic_prod,(heat_dssp+entp_mic_prod)
 
 ############################################ MAIN #########################################################
 
@@ -201,17 +209,18 @@ def cal_intrin_rt(mat_dist,mat_k,mat_ene): # need to know distribution, "real" j
 
 # console
 M_Calc_Prop = 1
-M_Plot_H_Haxis = 0
-M_Plot_G_Haxis = 1
+M_Plot_H_Haxis = 1
+M_Plot_G_Haxis = 0
+M_Plot_Contour = 0
 
 # basic parameters
 m_x1 = 1
 m_x2 = 1
 
-m_num_g = 51
-m_num_h = 8
-m_d_g = 4
-m_inc_h = 8
+m_num_g = 6
+m_num_h = 16
+m_d_g = 2
+m_inc_h = 0
 
 m_energy_nm = np.array([1,0,0,-1,1,0,0,-1])  # normailized state energies
 
@@ -267,6 +276,12 @@ if M_Calc_Prop==1:
             f_record = f".\\resl_ness_ana\\effc_rt.dat"
             with open(f_record,'ab') as f:
                 np.savetxt(f,[record_row],fmt="%d\t%d\t%.7e\t%.7e")
+            # entropy production
+            (m_heat_d,m_entp_mic,m_entp_tot) = cal_entropy_prod_total(m_dist_rd,m_mat_k)
+            record_row = np.array([m_g,m_h,m_heat_d,m_entp_mic,m_entp_tot])
+            f_record = f".\\resl_ness_ana\\entropy_prod.dat"
+            with open(f_record,'ab') as f:
+                np.savetxt(f,[record_row],fmt="%d\t%d\t%.7e\t%.7e\t%.7e")
             #
 
 ## Make plots
@@ -284,14 +299,20 @@ with open(filename_effc,'r') as f:
 filename_mtif = f".\\resl_ness_ana\\mutual_information.dat"
 with open(filename_mtif) as f:
     m_rd_mi = np.loadtxt(f)
+filename_entr = f".\\resl_ness_ana\\entropy_prod.dat"
+with open(filename_entr) as f:
+    m_rd_et = np.loadtxt(f)
 
-m_crrct_exct = np.reshape(m_rd_crrct[:,2],(m_num_g,m_num_h))
-m_crrct_gnrl = np.reshape(m_rd_crrct[:,3],(m_num_g,m_num_h))
-m_idot_x = np.reshape(m_rd_idot[:,2],(m_num_g,m_num_h))
-m_idot_y = np.reshape(m_rd_idot[:,3],(m_num_g,m_num_h))
-m_effc_d = np.reshape(m_rd_effc[:,2],(m_num_g,m_num_h))
-m_effc_o = np.reshape(m_rd_effc[:,3],(m_num_g,m_num_h))
-m_I_mi = np.reshape(m_rd_mi[:,2],(m_num_g,m_num_h))
+m_crrct_exct = np.reshape(m_rd_crrct[:,2],(m_num_g,m_num_h)) # exact correctness probability
+m_crrct_gnrl = np.reshape(m_rd_crrct[:,3],(m_num_g,m_num_h)) # general correctness probability
+m_idot_x = np.reshape(m_rd_idot[:,2],(m_num_g,m_num_h)) # mutual information flow in X domain
+m_idot_y = np.reshape(m_rd_idot[:,3],(m_num_g,m_num_h)) # mutual information flow in Y domain
+m_effc_d = np.reshape(m_rd_effc[:,2],(m_num_g,m_num_h)) # effective external energy driving
+m_effc_o = np.reshape(m_rd_effc[:,3],(m_num_g,m_num_h)) # effective intrinsic jumping rate
+m_I_mi = np.reshape(m_rd_mi[:,2],(m_num_g,m_num_h)) # effective mutual information I
+m_heat_d = np.reshape(m_rd_et[:,2],(m_num_g,m_num_h)) # heat dissipation rate
+m_entp_mic = np.reshape(m_rd_et[:,3],(m_num_g,m_num_h)) # micro entropy production rate
+m_entp_tot = np.reshape(m_rd_et[:,4],(m_num_g,m_num_h)) # total entropy production rate
 
 # ploting curves according to h_0
 if M_Plot_H_Haxis==1:
@@ -347,13 +368,37 @@ if M_Plot_H_Haxis==1:
     plt.ylabel("Effective \u03C9")
     plt.title(" Effective intrinsic jumping rate after coarse graining")
     plt.savefig('.\\resl_ness_ana\\Effc_intrin_rate_h.png')
+    # ploting heat dissipation rate
+    plt.figure()
+    for i in range(m_num_g):
+        plt.plot(m_list_h,m_heat_d[i,:],label='\u03B3=%.1f'%m_list_g[i],color=m_colorbar[i])
+        plt.legend()
+    plt.xlabel("h_0 value")
+    plt.ylabel("Heat dissipation rate")
+    plt.savefig('.\\resl_ness_ana\\Heat_dissipation_h.png')
+    # ploting micro entropy production rate
+    plt.figure()
+    for i in range(m_num_g):
+        plt.plot(m_list_h,m_entp_mic[i,:],label='\u03B3=%.1f'%m_list_g[i],color=m_colorbar[i])
+        plt.legend()
+    plt.xlabel("h_0 value")
+    plt.ylabel("Microscopic entropy production rate")
+    plt.savefig('.\\resl_ness_ana\\Micro_entropy_prod_h.png')
+    # ploting total entropy production rate
+    plt.figure()
+    for i in range(m_num_g):
+        plt.plot(m_list_h,m_entp_tot[i,:],label='\u03B3=%.1f'%m_list_g[i],color=m_colorbar[i])
+        plt.legend()
+    plt.xlabel("h_0 value")
+    plt.ylabel("Total entropy production rate")
+    plt.savefig('.\\resl_ness_ana\\Total_entropy_prod_h.png')
 
 # ploting curves according to \gamma
 if M_Plot_G_Haxis==1:
     # ploting correctness probability
     plt.figure()
     for i in range(m_num_h):
-        plt.plot(m_list_g,m_crrct_exct[:,i],label='h_0=%.1f'%m_list_g[i],color=m_colorbar[i])
+        plt.plot(m_list_g,m_crrct_exct[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
         plt.legend()
     for i in range(m_num_h):
         plt.plot(m_list_g,m_crrct_gnrl[:,i],'--',color=m_colorbar[i])
@@ -363,7 +408,7 @@ if M_Plot_G_Haxis==1:
     # ploting mutual information
     plt.figure()
     for i in range(m_num_h):
-        plt.plot(m_list_g,m_I_mi[:,i],label='h_0=%.1f'%m_list_g[i],color=m_colorbar[i])
+        plt.plot(m_list_g,m_I_mi[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
         plt.legend()
     plt.xlabel("\u03B3 value")
     plt.ylabel("Mutual information")
@@ -371,7 +416,7 @@ if M_Plot_G_Haxis==1:
     # ploting mutual information in X domain
     plt.figure()
     for i in range(m_num_h):
-        plt.plot(m_list_g,m_idot_x[:,i],label='h_0=%.1f'%m_list_g[i],color=m_colorbar[i])
+        plt.plot(m_list_g,m_idot_x[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
         plt.legend()
     plt.xlabel("\u03B3 value")
     plt.ylabel("Mutual information flux in X1X2 domain")
@@ -379,7 +424,7 @@ if M_Plot_G_Haxis==1:
     # ploting mutual information in Y domain
     plt.figure()
     for i in range(m_num_h):
-        plt.plot(m_list_g,m_idot_y[:,i],label='h_0=%.1f'%m_list_g[i],color=m_colorbar[i])
+        plt.plot(m_list_g,m_idot_y[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
         plt.legend()
     plt.xlabel("\u03B3 value")
     plt.ylabel("Mutual information flux in Y domain")
@@ -387,7 +432,7 @@ if M_Plot_G_Haxis==1:
     # ploting effective driving
     plt.figure()
     for i in range(m_num_h):
-        plt.plot(m_list_g,m_effc_d[:,i],label='h_0=%.1f'%m_list_g[i],color=m_colorbar[i])
+        plt.plot(m_list_g,m_effc_d[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
         plt.legend()
     plt.xlabel("\u03B3 value")
     plt.ylabel("Effective \u03B4")
@@ -396,9 +441,33 @@ if M_Plot_G_Haxis==1:
     # ploting effective intrinsic jumping rate
     plt.figure()
     for i in range(m_num_h):
-        plt.plot(m_list_g,m_effc_o[:,i],label='h_0=%.1f'%m_list_g[i],color=m_colorbar[i])
+        plt.plot(m_list_g,m_effc_o[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
         plt.legend()
     plt.xlabel("\u03B3 value")
     plt.ylabel("Effective \u03C9")
     plt.title(" Effective intrinsic jumping rate after coarse graining")
     plt.savefig('.\\resl_ness_ana\\Effc_intrin_rate_g.png')
+    # ploting heat dissipation rate
+    plt.figure()
+    for i in range(m_num_h):
+        plt.plot(m_list_g,m_heat_d[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
+        plt.legend()
+    plt.xlabel("\u03B3 value")
+    plt.ylabel("Heat dissipation rate")
+    plt.savefig('.\\resl_ness_ana\\Heat_dissipation.png')
+    # ploting micro entropy production rate
+    plt.figure()
+    for i in range(m_num_h):
+        plt.plot(m_list_g,m_entp_mic[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
+        plt.legend()
+    plt.xlabel("\u03B3 value")
+    plt.ylabel("Microscopic entropy production rate")
+    plt.savefig('.\\resl_ness_ana\\Micro_entropy_prod.png')
+    # ploting total entropy production rate
+    plt.figure()
+    for i in range(m_num_h):
+        plt.plot(m_list_g,m_entp_tot[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
+        plt.legend()
+    plt.xlabel("\u03B3 value")
+    plt.ylabel("Total entropy production rate")
+    plt.savefig('.\\resl_ness_ana\\Total_entropy_prod.png')

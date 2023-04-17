@@ -208,18 +208,18 @@ def cal_entropy_prod_total(mat_dist,mat_k):
 ## Analysis
 
 # console
-M_Calc_Prop = 1
-M_Plot_H_Haxis = 1
+M_Calc_Prop = 0
+M_Plot_H_Haxis = 0
 M_Plot_G_Haxis = 0
-M_Plot_Contour = 0
+M_Plot_Contour = 1
 
 # basic parameters
 m_x1 = 1
 m_x2 = 1
 
-m_num_g = 6
-m_num_h = 16
-m_d_g = 2
+m_num_g = 31
+m_num_h = 8
+m_d_g = 1
 m_inc_h = 0
 
 m_energy_nm = np.array([1,0,0,-1,1,0,0,-1])  # normailized state energies
@@ -471,3 +471,56 @@ if M_Plot_G_Haxis==1:
     plt.xlabel("\u03B3 value")
     plt.ylabel("Total entropy production rate")
     plt.savefig('.\\resl_ness_ana\\Total_entropy_prod.png')
+
+# ploting contours
+if M_Plot_Contour==1:
+    m_Ygrid = np.arange(m_num_g)*m_d_g # for ploting axis
+    m_Xgrid = np.arange(m_num_h)+m_inc_h
+    # ploting contour for correctness
+    plt.figure()
+    plt.contourf(m_Xgrid,m_Ygrid,m_crrct_exct,levels=np.arange(0,1,0.01))
+    plt.colorbar()
+    contour=plt.contour(m_Xgrid,m_Ygrid,m_crrct_exct,colors='white',levels=np.arange(0,1,0.5))
+    plt.clabel(contour,inline=True,fontsize=8)
+    plt.xlabel("h_0")
+    plt.ylabel("\u03B3")
+    plt.title("Contour of correctness under tuning factors")
+    plt.savefig('.\\resl_ness_ana\\correct_contour.png')
+    # ploting contour for heat dissipation
+    plt.figure()
+    plt.contourf(m_Xgrid,m_Ygrid,m_heat_d,levels=np.arange(0,16,0.01))
+    plt.colorbar()
+    contour=plt.contour(m_Xgrid,m_Ygrid,m_heat_d,colors='white',levels=np.arange(1,16,2))
+    plt.clabel(contour,inline=True,fontsize=8)
+    plt.xlabel("h_0")
+    plt.ylabel("\u03B3")
+    plt.title("Contour of heat dissipation")
+    plt.savefig('.\\resl_ness_ana\\heat_dsspt_contour.png')
+    # ploting contour for effective driving
+    plt.figure()
+    plt.contourf(m_Xgrid,m_Ygrid,m_effc_d,levels=np.arange(-1.5,0.5,0.01))
+    plt.colorbar()
+    contour=plt.contour(m_Xgrid,m_Ygrid,m_effc_d,colors='white',levels=np.arange(-1.5,0.5,0.5))
+    plt.clabel(contour,inline=True,fontsize=8)
+    plt.xlabel("h_0")
+    plt.ylabel("\u03B3")
+    plt.title("Contour of effective driving")
+    plt.savefig('.\\resl_ness_ana\\effect_driving_contour.png')
+    # ploting contour for intrinsic jumping rate
+    plt.figure()
+    plt.contourf(m_Xgrid,m_Ygrid,m_effc_o,levels=np.arange(0,1.6,0.01))
+    plt.colorbar()
+    plt.xlabel("h_0")
+    plt.ylabel("\u03B3")
+    plt.title("Contour of effective intrinsic jumping rate")
+    plt.savefig('.\\resl_ness_ana\\effect_omega_contour.png')
+    # ploting contour for mutual information
+    plt.figure()
+    plt.contourf(m_Xgrid,m_Ygrid,m_I_mi,levels=np.arange(0,0.7,0.01))
+    plt.colorbar()
+    contour=plt.contour(m_Xgrid,m_Ygrid,m_I_mi,colors='white',levels=np.arange(0,0.7,0.15))
+    plt.clabel(contour,inline=True,fontsize=8)
+    plt.xlabel("h_0")
+    plt.ylabel("\u03B3")
+    plt.title("Contour of mutual information")
+    plt.savefig('.\\resl_ness_ana\\I_contour.png')

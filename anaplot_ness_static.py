@@ -8,10 +8,10 @@ import ness_static as sts
 ## Analysis
 
 # console
-M_Calc_Prop = 0
+M_Calc_Prop = 1
 M_Plot_H_Haxis = 0
-M_Plot_G_Haxis = 1
-M_Plot_Contour = 1
+M_Plot_G_Haxis = 0
+M_Plot_Contour = 0
 
 # basic parameters
 m_x1 = 1

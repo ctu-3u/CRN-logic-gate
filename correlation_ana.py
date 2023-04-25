@@ -26,7 +26,7 @@ def sample_discrete(probs):
     q = np.random.rand()
     i = 0
     prob_cumu = 0
-    while prob_cumu<q:
+    while prob_cumu<=q:
         prob_cumu = prob_cumu+probs[i]
         i = i+1
     return i-1
@@ -55,11 +55,12 @@ def gillespie_ssa(c_cal_propensity,timepoints,initial_index,bool_,*args):
     if bool_==0: # args keep unchanged during simulation
         while i<size:
             while t<=timepoints[i_time]:
+                index_now = index
                 (index,dtime) = gillespie_draw(c_cal_propensity,index,*args1)
                 t = t+dtime
             i = np.searchsorted(timepoints,t,side='left')
             for j in range(i_time,i):
-                record[j,:] = [m_dict_xlabel[(args1[0],args1[1])],index]
+                record[j,:] = [m_dict_xlabel[(args1[0],args1[1])],index_now]
             i_time = i
     if bool_==1:
         while i<size:
@@ -67,11 +68,12 @@ def gillespie_ssa(c_cal_propensity,timepoints,initial_index,bool_,*args):
                 # draw one single change
                 args1[0] = np.random.randint(2)
                 args1[1] = np.random.randint(2)
+                index_now = index
                 (index,dtime) = gillespie_draw(c_cal_propensity,index,*args1)
                 t = t+dtime
             i = np.searchsorted(timepoints,t,side='left')
             for j in range(i_time,i):
-                record[j,:] = [m_dict_xlabel[(args1[0],args1[1])],index]
+                record[j,:] = [m_dict_xlabel[(args1[0],args1[1])],index_now]
             i_time = i
     return record
 
@@ -86,35 +88,35 @@ m_g = 15
 m_h = 7
 
 #  modificating sampling size
-m_smpl_seed = 200
+m_smpl_seed = 300
 m_smpl_tau = 250
 m_smpl_dt = 100
 
 t_end = 1000
-t_interval = 0.05
+t_interval = 0.005
+m_sample_interval = int(1/t_interval)
 timepoints = np.arange(0,t_end,t_interval)
-initial_index = 7
+initial_index = 4
 
 bool_ = 0
-
+'''
 ## Testing Gillespie algorithm
 m_crrness_sto = np.zeros(21)
-for m_g in range(0,21):
+for m_g in tqdm.tqdm(range(0,21)): # 21
     np.random.seed(m_g)
-    m_traj = gillespie_ssa(cal_propensity,timepoints,initial_index,bool_,m_x1,m_x2,m_g,m_h) 
-    # plt.figure()  # plotting trajectory
-    # plt.plot(timepoints,m_traj[:,1]+2,'r.--',label='(m,a)')
-    # plt.plot(timepoints,m_traj[:,2],'b.--',label='y')
-    # plt.xlabel('timestep')
-    # plt.ylabel('trajectory')
-    # plt.legend()
-    # plt.show()
+    m_traj = gillespie_ssa(cal_propensity,timepoints,initial_index,bool_,m_x1,m_x2,m_g,m_h)
     t_cnt = 0
     for i in range(len(timepoints)):
         if m_traj[i,1]>=4:
             t_cnt = t_cnt+1
     t_cnt = t_cnt/len(timepoints)
     m_crrness_sto[m_g] = t_cnt
+    # plt.figure()  # plotting trajectory
+    # plt.plot(timepoints,m_traj[:,1],'r.--',label='state label')
+    # plt.xlabel('timestep')
+    # plt.ylabel('trajectory')
+    # plt.legend()
+    # plt.show()
 m_crrness_num = np.zeros(21)
 filename = f"..\\RESULTS\\contour_x1_1x2_0\\correctness.dat"
 with open(filename,'r') as f:
@@ -127,13 +129,14 @@ plt.plot(range(21),m_crrness_sto,color='red',label='stochastical simulation resu
 plt.ylabel("probability")
 plt.xlabel("\u03B3")
 plt.legend()
-plt.title("Probability at state y=1, config h_0=7")
+plt.title("Probability at states y=1, config h_0=7")
 plt.show()
+'''
 
 ## Running
 
 # running Gillespie simulation
-bool_ = 1
+bool_ = 0
 m_trajs = np.zeros((m_smpl_seed,len(timepoints),2))
 
 print('Running Gillespie SSA over %d samples:'%m_smpl_seed)
@@ -144,23 +147,23 @@ for i in tqdm.tqdm(range(m_smpl_seed)):
     with open(filename,'w') as f:
         np.savetxt(f,m_traj,header='g=%.0f\th=%.0f\ttend=%.0f\ttinterval=%.0f\nX\t\tindex'%(m_g,m_h,t_end,t_interval),fmt="%d%d")
     m_trajs[i,:,:] = m_traj
-
-# Measuring correlation function
+'''
+# Measuring correlation function for X and Y
 time_middle_i = int(len(timepoints)/2)
 
-print("Measuring correlation function")
+print("Measuring correlation function for X and Y")
 m_corr_t = np.zeros((2*m_smpl_dt+1,2*m_smpl_tau+1)) # record correlation function for different t
 for i in tqdm.tqdm(range(-m_smpl_dt,m_smpl_dt+1)):
     t_xt = 0
     t_ytau = np.zeros(2*m_smpl_tau+1)
     t_xy = np.zeros(2*m_smpl_tau+1)
     for j in range(m_smpl_seed):
-        t_t_i = time_middle_i+20*i
+        t_t_i = time_middle_i+m_sample_interval*i
         t_dx = m_trajs[j,t_t_i,0]+1 # for clear calculation, add all the labels by 1
         t_xt = t_xt+t_dx
-        t_t_i = time_middle_i+20*i-20*m_smpl_tau # set the starting poing in \tau calculation
+        t_t_i = time_middle_i+m_sample_interval*i-m_sample_interval*m_smpl_tau # set the starting poing in \tau calculation
         for k in range(2*m_smpl_tau+1):
-            t_t_i = t_t_i+20
+            t_t_i = t_t_i+m_sample_interval
             t_dy = sts.m_y_label[int(m_trajs[j,t_t_i,1])]+1 # for clear calculation, add all the labels by 1
             t_ytau[k] = t_ytau[k]+t_dy
             t_xy[k] = t_xy[k]+t_dx*t_dy
@@ -186,6 +189,51 @@ x_axis = range(-m_smpl_tau,m_smpl_tau+1)
 plt.plot(x_axis,m_corr,'red',label='sampled over a period of time')
 plt.plot(x_axis,m_corr_0,'blue',label='sampled at a fixed time')
 plt.legend()
-plt.title("Time correlation function of sensor and responsor")
+plt.title("Time correlation function of input and responsor")
 plt.xlabel('\u03C4')
 plt.savefig('.\\resl_corr\\correlation_curve.png')
+'''
+# # Measuring correlation function for Sensor and Y
+time_middle_i = int(len(timepoints)/2)
+
+print("Measuring correlation function for Sensor and Y")
+m_corr_t_s = np.zeros((2*m_smpl_dt+1,2*m_smpl_tau+1)) # record correlation function for different t
+for i in tqdm.tqdm(range(-m_smpl_dt,m_smpl_dt+1)):
+    t_st = 0
+    t_ytau = np.zeros(2*m_smpl_tau+1)
+    t_sy = np.zeros(2*m_smpl_tau+1)
+    for j in range(m_smpl_seed):
+        t_t_i = time_middle_i+m_sample_interval*i
+        t_ds = sts.m_x_label[int(m_trajs[j,t_t_i,1])]+1 # for clear calculation, add all the labels by 1
+        t_st = t_st+t_ds
+        t_t_i = time_middle_i+m_sample_interval*i-m_sample_interval*m_smpl_tau # set the starting poing in \tau calculation
+        for k in range(2*m_smpl_tau+1):
+            t_t_i = t_t_i+m_sample_interval
+            t_dy = sts.m_y_label[int(m_trajs[j,t_t_i,1])]+1 # for clear calculation, add all the labels by 1
+            t_ytau[k] = t_ytau[k]+t_dy
+            t_sy[k] = t_sy[k]+t_ds*t_dy
+    t_st = t_st/m_smpl_seed # sampling average of X
+    t_ytau = t_ytau/m_smpl_seed # sampling average of Y
+    t_sy = t_sy/m_smpl_seed # sampling average of X*Y
+    t_corr_t_s = np.zeros(2*m_smpl_tau+1)
+    for k in range(2*m_smpl_tau+1):
+        t_corr_t_s[k] = (t_sy[k]-t_st*t_ytau[k])/(t_st*t_ytau[k])
+    m_corr_t_s[i,:] = t_corr_t_s
+t0_i = m_smpl_dt
+m_corr_0_s = m_corr_t_s[t0_i,:]
+m_corr_s = np.mean(m_corr_t_s,axis=0)
+filename = f".\\resl_corr\\corr_0_s.dat"
+with open(filename,'w') as f:
+    np.savetxt(f,np.transpose(m_corr_0_s))
+filename = f".\\resl_corr\\corr_s.dat"
+with open(filename,'w') as f:
+    np.savetxt(f,np.transpose(m_corr_s))
+
+plt.figure()    # plotting correlation curve
+x_axis = range(-m_smpl_tau,m_smpl_tau+1)
+plt.plot(x_axis,m_corr_s,'red',label='sampled over a period of time')
+plt.plot(x_axis,m_corr_0_s,'blue',label='sampled at a fixed time')
+plt.legend()
+plt.title("Time correlation function of sensor and responsor")
+plt.xlabel('\u03C4')
+plt.savefig('.\\resl_corr\\correlation_curve_s.png')

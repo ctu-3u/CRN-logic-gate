@@ -3,6 +3,7 @@ import numpy.linalg
 
 import scipy.stats as st
 import tqdm
+import numba
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -14,6 +15,7 @@ m_dict_connection = {0:[1,2,4],1:[0,3,5],2:[0,3,6],3:[1,2,7],\
 m_dict_xlabel = {(0,0):0,(1,0):1,(0,1):2,(1,1):3}
 
 # compute propensity
+@numba.njit
 def cal_propensity(ini,*args):
     mat_k = sts.cal_mat_k(*args)
     prpn = np.zeros(8)

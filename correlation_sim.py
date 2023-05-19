@@ -161,10 +161,10 @@ def cal_correlation_S_Y(cal_propensity,timepoints,initial_index,m_smpl_seed,t_en
     t0_i = m_smpl_dt
     m_corr_0_s = m_corr_t_s[t0_i,:]
     m_corr_s = np.mean(m_corr_t_s,axis=0)
-    filename = f".\\resl_corr\\corr_0_s.dat"
+    filename = f".\\resl_corr\\corr_0_s_%d.dat"%args[2]
     with open(filename,'w') as f:
         np.savetxt(f,np.transpose(m_corr_0_s))
-    filename = f".\\resl_corr\\corr_s.dat"
+    filename = f".\\resl_corr\\corr_s_%d.dat"%args[2]
     with open(filename,'w') as f:
         np.savetxt(f,np.transpose(m_corr_s))
     # plt.figure()    # plotting correlation curve
@@ -264,6 +264,7 @@ m_smpl_dt = 100
 m_dtsample_interval = int(1/t_interval)
 m_tausample_interval = 1
 x_axis = np.arange(-m_smpl_tau*t_interval*m_tausample_interval,(m_smpl_tau+1)*t_interval*m_tausample_interval,t_interval*m_tausample_interval)
+# x_axis = np.arange(-m_smpl_tau*m_tausample_interval,(m_smpl_tau+1)*m_tausample_interval,m_tausample_interval)
 
 m_g_list = np.arange(8)
 m_corr_list = np.zeros((8,501))

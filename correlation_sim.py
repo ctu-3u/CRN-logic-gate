@@ -119,10 +119,9 @@ def test_gillespie_ssa(cal_propensity,timepoints,initial_index,*args): # argumen
     plt.show()
 
 def cal_correlation_S_Y(cal_propensity,timepoints,initial_index,m_smpl_seed,t_end,t_interval,*args): # arguments: x_1, x_2, \gamma, h
-    # m_smpl_tau = 250
-    # m_smpl_dt = 100
-    m_smpl_tau = 150000
-    m_smpl_dt = 1
+    m_smpl_tau = 250
+    m_smpl_dt = 200
+
     m_dtsample_interval = int(1/t_interval)
     m_tausample_interval = 1
     timepoints = np.arange(0,t_end,t_interval)
@@ -184,7 +183,7 @@ def cal_correlation_S_Y(cal_propensity,timepoints,initial_index,m_smpl_seed,t_en
     
 def cal_correlation_X_Y(cal_propensity,timepoints,initial_index,m_smpl_seed,t_end,t_interval,*args): # arguments: x_1, x_2, \gamma, h
     m_smpl_tau = 250
-    m_smpl_dt = 100
+    m_smpl_dt = 200
     m_dtsample_interval = int(1/t_interval)
     m_tausample_interval = 1
     timepoints = np.arange(0,t_end,t_interval)
@@ -251,33 +250,35 @@ def cal_correlation_X_Y(cal_propensity,timepoints,initial_index,m_smpl_seed,t_en
 m_x1 = 1
 m_x2 = 1
 m_g = 10
-m_h = 10
+m_h = 7
 
 # modificating sampling size
-m_smpl_seed = 500
+m_smpl_seed = 400
 
-# t_end = 1000 
-# t_interval = 0.05
-t_end = 70
-t_interval = 0.0001
+t_end = 1000 
+t_interval = 0.05
+
 timepoints = np.arange(0,t_end,t_interval)
 initial_index = 4
 
+m_g_num = 5
+
+# # testing Gillespie algorithm
+# test_gillespie_ssa(cal_propensity,timepoints,initial_index,m_x1,m_x2)
+
 # computing correlation function S-Y at different \gamma
 m_colorbar = ['k','b','c','g','y','r','m','violet']
-# m_smpl_tau = 250
-# m_smpl_dt = 100
-m_smpl_tau = 150000
-m_smpl_dt = 1
+m_smpl_tau = 250
+m_smpl_dt = 200
+
 m_dtsample_interval = int(1/t_interval)
 m_tausample_interval = 1
 x_axis = np.arange(-m_smpl_tau*t_interval*m_tausample_interval,(m_smpl_tau+1)*t_interval*m_tausample_interval,t_interval*m_tausample_interval)
-# x_axis = np.arange(-m_smpl_tau*m_tausample_interval,(m_smpl_tau+1)*m_tausample_interval,m_tausample_interval)
 
-m_g_list = 4*np.arange(2)+3
-m_corr_list = np.zeros((2,2*m_smpl_tau+1))
+m_g_list = np.arange(m_g_num)*2
+m_corr_list = np.zeros((m_g_num,2*m_smpl_tau+1))
 plt.figure()
-for i in range(2):
+for i in range(m_g_num):
     m_corr_list[i,:] = \
     cal_correlation_S_Y(cal_propensity,timepoints,initial_index,m_smpl_seed,t_end,t_interval,m_x1,m_x2,m_g_list[i],m_h)
     plt.plot(x_axis,m_corr_list[i,:],color=m_colorbar[i],label='\u03B3=%.1f'%m_g_list[i])

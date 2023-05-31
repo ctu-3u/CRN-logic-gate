@@ -18,17 +18,17 @@ m_T = 1 # temperature
 m_beta = 1/(m_kB*m_T)
 #***#
 
-# vortex energy level, equilibrium model 1
-def cal_energy_level_mdl1(x1,x2,h,i):
-    # i is the index of vortex
-    energy = h*np.square(m_y_v[i]-m_m_v[i]*m_a_v[i])
-    return energy
+# # vortex energy level, equilibrium model 1
+# def cal_energy_level(x1,x2,h,i):
+#     # i is the index of vortex
+#     energy = -h*((x1-0.5)*(m_m_v[i]-0.5)+(x2-0.5)*(m_a_v[i]-0.5))
+#     return energy
 
-# added external field, equilibrium model 1
-# i is the start vortex index, j is the end vortex index
-def cal_driving_mdl1(x1,x2,g,i,j):
-    driving = -g/2*((x1-0.5)*(m_m_v[i]-0.5)+(x2-0.5)*(m_a_v[i]-0.5))
-    return driving
+# # added external field, equilibrium model 1
+# # i is the start vortex index, j is the end vortex index
+# def cal_driving(x1,x2,g,i,j):
+#     driving = g/2*np.square(m_y_v[i]-m_m_v[i]*m_a_v[i])
+#     return driving
 
 # vortex energy level, non-equilibrium model 2
 def cal_energy_level(x1,x2,h,i):

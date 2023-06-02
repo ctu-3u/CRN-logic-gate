@@ -112,7 +112,7 @@ def test_gillespie_ssa(cal_propensity,timepoints,initial_index,*args): # argumen
     plt.figure()
     for i in range(8):
         plt.plot(x_axis,m_dist_num[:,i],linestyle='dashed',color=m_colorbar[i])
-        plt.plot(x_axis,m_dist_sto[:,i],color=m_colorbar[i],label='state %d'%i)
+        plt.plot(x_axis,m_dist_sto[:,i],color=m_colorbar[i],label='P(%d,%d,%d)'%(sts.m_m_v[i],sts.m_a_v[i],sts.m_y_v[i]))
     plt.legend()
     plt.xlabel('\u03B3')
     plt.ylabel('probability distribution')
@@ -263,24 +263,24 @@ initial_index = 4
 
 m_g_num = 5
 
-# # testing Gillespie algorithm
-# test_gillespie_ssa(cal_propensity,timepoints,initial_index,m_x1,m_x2)
+# testing Gillespie algorithm
+test_gillespie_ssa(cal_propensity,timepoints,initial_index,m_x1,m_x2)
 
-# computing correlation function S-Y at different \gamma
-m_colorbar = ['k','b','c','g','y','r','m','violet']
-m_smpl_tau = 250
-m_smpl_dt = 200
+# # computing correlation function S-Y at different \gamma
+# m_colorbar = ['k','b','c','g','y','r','m','violet']
+# m_smpl_tau = 250
+# m_smpl_dt = 200
 
-m_dtsample_interval = int(1/t_interval)
-m_tausample_interval = 1
-x_axis = np.arange(-m_smpl_tau*t_interval*m_tausample_interval,(m_smpl_tau+1)*t_interval*m_tausample_interval,t_interval*m_tausample_interval)
+# m_dtsample_interval = int(1/t_interval)
+# m_tausample_interval = 1
+# x_axis = np.arange(-m_smpl_tau*t_interval*m_tausample_interval,(m_smpl_tau+1)*t_interval*m_tausample_interval,t_interval*m_tausample_interval)
 
-m_g_list = np.arange(m_g_num)*2
-m_corr_list = np.zeros((m_g_num,2*m_smpl_tau+1))
-plt.figure()
-for i in range(m_g_num):
-    m_corr_list[i,:] = \
-    cal_correlation_S_Y(cal_propensity,timepoints,initial_index,m_smpl_seed,t_end,t_interval,m_x1,m_x2,m_g_list[i],m_h)
-    plt.plot(x_axis,m_corr_list[i,:],color=m_colorbar[i],label='\u03B3=%.1f'%m_g_list[i])
-plt.legend()
-plt.show()
+# m_g_list = np.arange(m_g_num)*2
+# m_corr_list = np.zeros((m_g_num,2*m_smpl_tau+1))
+# plt.figure()
+# for i in range(m_g_num):
+#     m_corr_list[i,:] = \
+#     cal_correlation_S_Y(cal_propensity,timepoints,initial_index,m_smpl_seed,t_end,t_interval,m_x1,m_x2,m_g_list[i],m_h)
+#     plt.plot(x_axis,m_corr_list[i,:],color=m_colorbar[i],label='\u03B3=%.1f'%m_g_list[i])
+# plt.legend()
+# plt.show()

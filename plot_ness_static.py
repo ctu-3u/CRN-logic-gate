@@ -9,19 +9,19 @@ import ness_static as sts
 
 # console
 M_Calc_Prop = 1
-M_Plot_H_Haxis = 0
+M_Plot_H_Haxis = 1
 M_Plot_G_Haxis = 0
 M_Plot_Contour = 0
 
 # basic parameters
 m_x1 = 1
 m_x2 = 1
-m_index_correct_state = 3
-m_index_correct_output = range(0,4)
+m_index_correct_state = 7
+m_index_correct_output = range(4,8)
 
-m_num_g = 31
-m_num_h = 8
-m_d_g = -1
+m_num_g = 6
+m_num_h = 15
+m_d_g = 2
 m_inc_h = 0
 
 m_energy_nm = np.array([1,0,0,-1,1,0,0,-1])  # normailized state energies
@@ -33,7 +33,7 @@ m_colorbar = ['k','b','c','g','y','r','m','violet']
 # computing NESS distributions
 for i in range(0,m_num_g):
     for j in range(0,m_num_h):
-        m_g = i*m_d_g # \gamme
+        m_g = i*m_d_g # \gamma
         m_h = j+m_inc_h # \h_0
         m_mat_k = sts.cal_mat_k(m_x1,m_x2,m_g,m_h)
         m_ness = sts.cal_ness_distribution(m_mat_k)
@@ -71,13 +71,6 @@ if M_Calc_Prop==1:
             f_record = f".\\resl_ness_ana\\mutual_information.dat"
             with open(f_record,'ab') as f:
                 np.savetxt(f,[record_row],fmt="%d\t%d\t%.18e")
-            # effective dynamics
-            m_energy = m_h*m_energy_nm/2
-            (delta_effc,omega) = sts.cal_intrin_rt(m_dist_rd,m_mat_k,m_energy)
-            record_row = np.array([m_g,m_h,delta_effc,omega])
-            f_record = f".\\resl_ness_ana\\effc_rt.dat"
-            with open(f_record,'ab') as f:
-                np.savetxt(f,[record_row],fmt="%d\t%d\t%.7e\t%.7e")
             # entropy production
             (m_heat_d,m_entp_mic,m_entp_tot) = sts.cal_entropy_prod_total(m_dist_rd,m_mat_k)
             record_row = np.array([m_g,m_h,m_heat_d,m_entp_mic,m_entp_tot])
@@ -96,8 +89,6 @@ filename_idot = f".\\resl_ness_ana\\idot_flux.dat"
 with open(filename_idot,'r') as f:
     m_rd_idot = np.loadtxt(f)
 filename_effc = f".\\resl_ness_ana\\effc_rt.dat"
-with open(filename_effc,'r') as f:
-    m_rd_effc = np.loadtxt(f)
 filename_mtif = f".\\resl_ness_ana\\mutual_information.dat"
 with open(filename_mtif) as f:
     m_rd_mi = np.loadtxt(f)
@@ -109,8 +100,6 @@ m_crrct_exct = np.reshape(m_rd_crrct[:,2],(m_num_g,m_num_h)) # exact correctness
 m_crrct_gnrl = np.reshape(m_rd_crrct[:,3],(m_num_g,m_num_h)) # general correctness probability
 m_idot_x = np.reshape(m_rd_idot[:,2],(m_num_g,m_num_h)) # mutual information flow in X domain
 m_idot_y = np.reshape(m_rd_idot[:,3],(m_num_g,m_num_h)) # mutual information flow in Y domain
-m_effc_d = np.reshape(m_rd_effc[:,2],(m_num_g,m_num_h)) # effective external energy driving
-m_effc_o = np.reshape(m_rd_effc[:,3],(m_num_g,m_num_h)) # effective intrinsic jumping rate
 m_I_mi = np.reshape(m_rd_mi[:,2],(m_num_g,m_num_h)) # effective mutual information I
 m_heat_d = np.reshape(m_rd_et[:,2],(m_num_g,m_num_h)) # heat dissipation rate
 m_entp_mic = np.reshape(m_rd_et[:,3],(m_num_g,m_num_h)) # micro entropy production rate
@@ -152,24 +141,6 @@ if M_Plot_H_Haxis==1:
     plt.xlabel("h_0 value")
     plt.ylabel("Mutual information flux in Y domain")
     plt.savefig('.\\resl_ness_ana\\Idot_Y_h.png')
-    # ploting effective driving
-    plt.figure()
-    for i in range(m_num_g):
-        plt.plot(m_list_h,m_effc_d[i,:],label='\u03B3=%.1f'%m_list_g[i],color=m_colorbar[i])
-        plt.legend()
-    plt.xlabel("h_0 value")
-    plt.ylabel("Effective \u03B4")
-    plt.title(" Effective external driving after coarse graining\n(positive direction y0 to y1) ")
-    plt.savefig('.\\resl_ness_ana\\Effc_driving_h.png')
-    # ploting effective intrinsic jumping rate
-    plt.figure()
-    for i in range(m_num_g):
-        plt.plot(m_list_h,m_effc_o[i,:],label='\u03B3=%.1f'%m_list_g[i],color=m_colorbar[i])
-        plt.legend()
-    plt.xlabel("h_0 value")
-    plt.ylabel("Effective \u03C9")
-    plt.title(" Effective intrinsic jumping rate after coarse graining")
-    plt.savefig('.\\resl_ness_ana\\Effc_intrin_rate_h.png')
     # ploting heat dissipation rate
     plt.figure()
     for i in range(m_num_g):
@@ -231,24 +202,6 @@ if M_Plot_G_Haxis==1:
     plt.xlabel("\u03B3 value")
     plt.ylabel("Mutual information flux in Y domain")
     plt.savefig('.\\resl_ness_ana\\Idot_Y_g.png')
-    # ploting effective driving
-    plt.figure()
-    for i in range(m_num_h):
-        plt.plot(m_list_g,m_effc_d[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
-        plt.legend()
-    plt.xlabel("\u03B3 value")
-    plt.ylabel("Effective \u03B4")
-    plt.title(" Effective external driving after coarse graining\n(positive direction y0 to y1) ")
-    plt.savefig('.\\resl_ness_ana\\Effc_driving_g.png')
-    # ploting effective intrinsic jumping rate
-    plt.figure()
-    for i in range(m_num_h):
-        plt.plot(m_list_g,m_effc_o[:,i],label='h_0=%.1f'%m_list_h[i],color=m_colorbar[i])
-        plt.legend()
-    plt.xlabel("\u03B3 value")
-    plt.ylabel("Effective \u03C9")
-    plt.title(" Effective intrinsic jumping rate after coarse graining")
-    plt.savefig('.\\resl_ness_ana\\Effc_intrin_rate_g.png')
     # ploting heat dissipation rate
     plt.figure()
     for i in range(m_num_h):
@@ -298,24 +251,6 @@ if M_Plot_Contour==1:
     plt.ylabel("\u03B3")
     plt.title("Contour of heat dissipation")
     plt.savefig('.\\resl_ness_ana\\heat_dsspt_contour.png')
-    # ploting contour for effective driving
-    plt.figure()
-    plt.contourf(m_Xgrid,m_Ygrid,m_effc_d,levels=np.arange(-0.5,1.5,0.01))
-    plt.colorbar()
-    contour=plt.contour(m_Xgrid,m_Ygrid,m_effc_d,colors='white',levels=np.arange(-0.5,1.5,0.5))
-    plt.clabel(contour,inline=True,fontsize=8)
-    plt.xlabel("h_0")
-    plt.ylabel("\u03B3")
-    plt.title("Contour of effective driving")
-    plt.savefig('.\\resl_ness_ana\\effect_driving_contour.png')
-    # ploting contour for intrinsic jumping rate
-    plt.figure()
-    plt.contourf(m_Xgrid,m_Ygrid,m_effc_o,levels=np.arange(0,1.5,0.01))
-    plt.colorbar()
-    plt.xlabel("h_0")
-    plt.ylabel("\u03B3")
-    plt.title("Contour of effective intrinsic jumping rate")
-    plt.savefig('.\\resl_ness_ana\\effect_omega_contour.png')
     # ploting contour for mutual information
     plt.figure()
     plt.contourf(m_Xgrid,m_Ygrid,m_I_mi,levels=np.arange(0,0.7,0.01))
